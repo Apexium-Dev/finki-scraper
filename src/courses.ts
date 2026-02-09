@@ -12,12 +12,23 @@ export interface Course {
 
 export function getSavedCourses(): Course[] {
   if (!fs.existsSync("./data")) fs.mkdirSync("./data");
+
   if (!fs.existsSync(COURSES_FILE)) {
     fs.writeFileSync(COURSES_FILE, JSON.stringify([]));
     return [];
   }
+
   const data = fs.readFileSync(COURSES_FILE, "utf-8");
-  return JSON.parse(data);
+
+  if (!data.trim()) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    return [];
+  }
 }
 
 export function saveCourses(courses: Course[]) {
