@@ -1,0 +1,33 @@
+{
+  "name": "finki-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Apexium-Dev/finki-scraper.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Apexium-Dev/finki-scraper/issues"
+  },
+  "homepage": "https://github.com/Apexium-Dev/finki-scraper#readme",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.2.4",
+    "pdf-parse": "^2.4.5",
+    "puppeteer": "^24.37.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "@types/pdf-parse": "^1.1.5",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

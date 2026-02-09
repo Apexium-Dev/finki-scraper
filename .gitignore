@@ -1,3 +1,13 @@
+# TypeScript
+dist/
+out/
+
+# Apexium Scraping Data
+data/*.json
+
+# VisualStudio Code Folder
+.vscode/
+
 # Logs
 logs
 *.log
