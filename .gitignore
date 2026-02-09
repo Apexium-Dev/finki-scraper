@@ -1,6 +1,7 @@
 # TypeScript
 dist/
 out/
+README.md
 
 # Apexium Scraping Data
 data/*.json
