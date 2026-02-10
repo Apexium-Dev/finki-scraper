@@ -1,6 +1,6 @@
-import { login } from "./auth";
-import { scrapeCourses } from "./scraper";
-import { monitorAnnouncements } from "./monitor"; // Увези го новиот монитор
+import { login } from "./services/auth";
+import { scrapeCourses } from "./core/scraper";
+import { monitorAnnouncements } from "./monitor";
 
 async function main() {
   try {

@@ -1,5 +1,5 @@
 import { Page } from "puppeteer";
-import { getSavedCourses } from "./courses";
+import { getSavedCourses } from "../services/courses";
 import { getLastAnnouncements, saveLastAnnouncements } from "./announcements";
 
 export async function monitorAnnouncements(page: Page) {

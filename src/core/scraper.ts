@@ -1,5 +1,10 @@
 import { Page } from "puppeteer";
-import { IGNORED_IDS, getSavedCourses, saveCourses, Course } from "./courses";
+import {
+  IGNORED_IDS,
+  getSavedCourses,
+  saveCourses,
+  Course,
+} from "../services/courses";
 
 export async function scrapeCourses(page: Page) {
   await page.goto("https://courses.finki.ukim.mk/my/courses.php", {
