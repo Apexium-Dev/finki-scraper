@@ -25,7 +25,7 @@ export async function parsePdfWithPage(
       });
     });
   } catch (err) {
-    console.error("[PDF_PARSE_ERROR]", err);
+    console.error("[ERROR] PDF Parse Failure:", err);
     return "";
   }
 }
@@ -40,14 +40,16 @@ export function findMultipleIndices(
   const results: any[] = [];
 
   const headerKeywords = [
-    "Индекс",
     "Index",
-    "Име",
     "Points",
-    "Вкупно",
     "Total",
+    "Grade",
+    "Status",
+    "Индекс",
+    "Оцена",
   ];
-  let tableHeader = "Не е најдено заглавие";
+
+  let tableHeader = "Header not found";
 
   for (const key of headerKeywords) {
     const foundIdx = cleanText.indexOf(key);
@@ -69,6 +71,7 @@ export function findMultipleIndices(
         indexPos + cleanIndex.length,
         indexPos + 600,
       );
+
       const nextStudentMatch = context.match(/\b[1-2]\d{5}\b/);
       if (nextStudentMatch) {
         context = context.substring(0, nextStudentMatch.index);
@@ -84,6 +87,7 @@ export function findMultipleIndices(
           const numericValues = dataPoints.map((n) =>
             parseFloat(n.replace(",", ".")),
           );
+
           const maxPoints = Math.max(...numericValues);
           const lastVal = dataPoints[dataPoints.length - 1];
 
@@ -93,8 +97,8 @@ export function findMultipleIndices(
             index: cleanIndex,
             header: tableHeader,
             fullRow: dataPoints.join(" | "),
-            points: maxPoints.toString(), // Најголемата бројка (Вкупно поени)
-            grade: lastVal, // Последната бројка (веројатно Оцена)
+            points: maxPoints.toString(),
+            grade: lastVal,
           };
 
           saveGradeResult(resultObj);
@@ -102,17 +106,20 @@ export function findMultipleIndices(
         }
       } else {
         const roomMatch =
-          context.match(/(?:лаб|сала|lab|room)\s*([A-Z0-9.\/]+)/i) ||
-          context.match(/\s+([1-2][0-9]{2}[a-z]?)/i);
+          context.match(
+            /(?:lab|room|amfi|лаб|сала|амфитеатар)\s*([A-Z0-9.\/]+)/i,
+          ) || context.match(/\b([1-2][0-9]{2}[a-z]?|[A-Z][0-9])\b/i);
+
         const timeMatch = context.match(/([0-1]?[0-9]:[0-5][0-9])/);
 
         const found = {
           index: cleanIndex,
+          course: courseName,
           room: roomMatch ? roomMatch[1] : "N/A",
-          time: timeMatch ? timeMatch[1] : "N/A",
+          time: timeMatch ? timeMatch[0] : "N/A",
         };
 
-        saveExamResult({ course: courseName, ...found });
+        saveExamResult(found);
         results.push(found);
       }
     }

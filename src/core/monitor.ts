@@ -2,7 +2,11 @@ import { Page } from "puppeteer";
 import { getSavedCourses } from "../services/courses";
 import { getLastAnnouncements, saveLastAnnouncements } from "./announcements";
 import { parsePdfWithPage, findMultipleIndices } from "../services/pdf-parser";
-import { saveGeneralAnnouncement } from "../services/results";
+import {
+  saveGeneralAnnouncement,
+  saveGradeResult,
+  saveExamResult,
+} from "../services/results";
 
 export async function monitorAnnouncements(page: Page) {
   const courses = getSavedCourses();
@@ -10,12 +14,14 @@ export async function monitorAnnouncements(page: Page) {
   const indicesToSearch = (process.env.INDEXI || "")
     .split(",")
     .map((i) => i.trim());
+
   let hasUpdates = false;
 
   for (const course of courses) {
     if (!course.announcement) continue;
 
     try {
+      console.log(`[CHECKING] ${course.name}...`);
       await page.goto(course.announcement, { waitUntil: "networkidle2" });
 
       const latest = await page.evaluate(() => {
@@ -33,21 +39,25 @@ export async function monitorAnnouncements(page: Page) {
       const previous = state[course.id];
 
       if (!previous || previous.id !== latest.id) {
-        console.log(`[NEW] [${course.name}] ${latest.title}`);
+        console.log(`[NEW POST] [${course.name}] ${latest.title}`);
+
         await page.goto(latest.link, { waitUntil: "networkidle2" });
 
         const postData = await page.evaluate(() => {
           const contentElement = document.querySelector(
             ".post-content-container",
           );
-          const pdfLink = document.querySelector(
-            'a[href*=".pdf"]',
-          ) as HTMLAnchorElement;
+          if (!contentElement) return { text: "", links: [] };
+
+          const anchors = Array.from(contentElement.querySelectorAll("a"));
+          const links = anchors.map((a) => ({
+            href: (a as HTMLAnchorElement).href,
+            text: (a as HTMLElement).innerText.trim(),
+          }));
+
           return {
-            text: contentElement
-              ? (contentElement as HTMLElement).innerText.trim()
-              : "",
-            pdfUrl: pdfLink ? pdfLink.href : null,
+            text: (contentElement as HTMLElement).innerText.trim(),
+            links: links,
           };
         });
 
@@ -58,6 +68,92 @@ export async function monitorAnnouncements(page: Page) {
           link: latest.link,
         });
 
+        const isGrades =
+          /резултати|оцени|поени|тест|испит|колоквиум|оценка|rezultati|oceni|points|test|grade/i.test(
+            latest.title,
+          );
+        const isSchedule =
+          /распоред|полагање|испит|колоквиум|raspored|polaganje/i.test(
+            latest.title,
+          );
+
+        if (isSchedule || isGrades) {
+          console.log(
+            `[ANALYSIS] Scanning post text for indices: ${indicesToSearch.join(", ")}`,
+          );
+          for (const index of indicesToSearch) {
+            if (postData.text.includes(index)) {
+              console.log(
+                `[MATCH] Found index ${index} directly in post content.`,
+              );
+
+              const startIdx = postData.text.indexOf(index);
+              const contextSnippet = postData.text
+                .substring(startIdx, startIdx + 100)
+                .replace(/\n/g, " ");
+
+              if (isGrades) {
+                saveGradeResult({
+                  timestamp: new Date().toLocaleString(),
+                  course: course.name,
+                  index: index,
+                  points: "Check text content",
+                  fullRow: contextSnippet,
+                  link: latest.link,
+                });
+              } else {
+                saveExamResult({
+                  course: course.name,
+                  index: index,
+                  room: "See text",
+                  time: "See text",
+                });
+              }
+            }
+          }
+
+          const pdfLinks = postData.links.filter((l) =>
+            l.href.toLowerCase().includes(".pdf"),
+          );
+          const keywordLinks = postData.links.filter((l) =>
+            /резултати|оцени|овде|тука|results|here|линк|link/i.test(l.text),
+          );
+
+          const allPotentialLinks = Array.from(
+            new Set([
+              ...pdfLinks.map((l) => l.href),
+              ...keywordLinks.map((l) => l.href),
+            ]),
+          );
+
+          console.log(
+            `[INFO] Found ${allPotentialLinks.length} potential links for deep scanning.`,
+          );
+
+          for (const link of allPotentialLinks) {
+            try {
+              console.log(`[PDF_SCAN] Processing file: ${link}`);
+              const pdfText = await parsePdfWithPage(page, link);
+
+              if (pdfText && pdfText.length > 20) {
+                const results = findMultipleIndices(
+                  pdfText,
+                  indicesToSearch,
+                  course.name,
+                  isGrades,
+                );
+                if (results.length > 0) {
+                  console.log(
+                    `[SUCCESS] Found match in file for indices: ${indicesToSearch.join(", ")}`,
+                  );
+                }
+              }
+            } catch (err) {
+              console.error(`[SKIP] Error processing link ${link}`);
+            }
+          }
+        }
+
         state[course.id] = {
           id: latest.id,
           title: latest.title,
@@ -65,33 +161,6 @@ export async function monitorAnnouncements(page: Page) {
           date_checked: new Date().toLocaleString(),
         };
         hasUpdates = true;
-
-        const isGrades = /резултати|оцени|поени|rezultati|oceni|points/i.test(
-          latest.title,
-        );
-        const isSchedule =
-          /распоред|полагање|испит|колоквиум|raspored|polaganje/i.test(
-            latest.title,
-          );
-
-        if ((isSchedule || isGrades) && postData.pdfUrl) {
-          const typeLabel = isGrades ? "GRADES" : "SCHEDULE";
-          console.log(`[PDF] ${typeLabel} detected. Parsing...`);
-
-          const pdfText = await parsePdfWithPage(page, postData.pdfUrl);
-          const results = findMultipleIndices(
-            pdfText,
-            indicesToSearch,
-            course.name,
-            isGrades,
-          );
-
-          if (Array.isArray(results) && results.length > 0) {
-            console.log(
-              `[MATCH] Found ${results.length} indices in ${typeLabel}!`,
-            );
-          }
-        }
       }
     } catch (err: any) {
       console.error(`[ERROR] ${course.name}:`, err.message);
@@ -100,6 +169,6 @@ export async function monitorAnnouncements(page: Page) {
 
   if (hasUpdates) {
     saveLastAnnouncements(state);
-    console.log("[SYNC] Announcement state updated.");
+    console.log("[SYNC] Announcement state updated successfully.");
   }
 }
