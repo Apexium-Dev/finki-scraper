@@ -33,3 +33,23 @@ export function saveExamResult(result: any) {
     console.log(`[DATA] Result saved for index ${result.index}`);
   }
 }
+
+const GRADES_FILE = path.join(DATA_DIR, "grades.json");
+
+export function saveGradeResult(result: any) {
+  let grades = [];
+  if (fs.existsSync(GRADES_FILE)) {
+    grades = JSON.parse(fs.readFileSync(GRADES_FILE, "utf-8") || "[]");
+  }
+  const exists = grades.some(
+    (g: any) =>
+      g.index === result.index &&
+      g.course === result.course &&
+      g.points === result.points,
+  );
+  if (!exists) {
+    grades.push({ timestamp: new Date().toLocaleString(), ...result });
+    fs.writeFileSync(GRADES_FILE, JSON.stringify(grades, null, 2));
+    console.log(`[DATA] Grade saved: ${result.index} -> ${result.points}`);
+  }
+}
