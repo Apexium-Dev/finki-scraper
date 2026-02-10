@@ -18,4 +18,3 @@ export async function login() {
   await page.waitForNavigation();
   return { browser, page };
 }
-login();
