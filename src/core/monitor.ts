@@ -30,11 +30,10 @@ export async function monitorAnnouncements(page: Page) {
       });
 
       if (!latest) continue;
-
       const previous = state[course.id];
 
       if (!previous || previous.id !== latest.id) {
-        console.log(`New announcement: [${course.name}] ${latest.title}`);
+        console.log(`[NEW] [${course.name}] ${latest.title}`);
         await page.goto(latest.link, { waitUntil: "networkidle2" });
 
         const postData = await page.evaluate(() => {
@@ -44,7 +43,6 @@ export async function monitorAnnouncements(page: Page) {
           const pdfLink = document.querySelector(
             'a[href*=".pdf"]',
           ) as HTMLAnchorElement;
-
           return {
             text: contentElement
               ? (contentElement as HTMLElement).innerText.trim()
@@ -68,33 +66,40 @@ export async function monitorAnnouncements(page: Page) {
         };
         hasUpdates = true;
 
+        const isGrades = /резултати|оцени|поени|rezultati|oceni|points/i.test(
+          latest.title,
+        );
         const isSchedule =
           /распоред|полагање|испит|колоквиум|raspored|polaganje/i.test(
             latest.title,
           );
 
-        if (isSchedule && postData.pdfUrl) {
-          console.log(`Schedule detected! Parsing PDF: ${postData.pdfUrl}`);
+        if ((isSchedule || isGrades) && postData.pdfUrl) {
+          const typeLabel = isGrades ? "GRADES" : "SCHEDULE";
+          console.log(`[PDF] ${typeLabel} detected. Parsing...`);
+
           const pdfText = await parsePdfWithPage(page, postData.pdfUrl);
-
-          const results = findMultipleIndices(pdfText, indicesToSearch);
-
-          const foundOnes = results.filter(
-            (r) => r.found && r.room !== "Не е најдена",
+          const results = findMultipleIndices(
+            pdfText,
+            indicesToSearch,
+            course.name,
+            isGrades,
           );
 
-          if (foundOnes.length > 0) {
-            console.log(`Found ${foundOnes.length} matches in the PDF!`);
+          if (Array.isArray(results) && results.length > 0) {
+            console.log(
+              `[MATCH] Found ${results.length} indices in ${typeLabel}!`,
+            );
           }
         }
       }
     } catch (err: any) {
-      console.error(`Failed to check course ${course.id}:`, err.message || err);
+      console.error(`[ERROR] ${course.name}:`, err.message);
     }
   }
 
   if (hasUpdates) {
     saveLastAnnouncements(state);
-    console.log("Announcement database synced.");
+    console.log("[SYNC] Announcement state updated.");
   }
 }
