@@ -1,5 +1,6 @@
 import { login } from "./auth";
 import { scrapeCourses } from "./scraper";
+import { monitorAnnouncements } from "./monitor"; // Увези го новиот монитор
 
 async function main() {
   try {
@@ -7,9 +8,12 @@ async function main() {
 
     await scrapeCourses(page);
 
+    await monitorAnnouncements(page);
+
+    console.log("Done");
     await browser.close();
   } catch (err) {
-    console.error(`${err}`);
+    console.error(`Error: ${err}`);
   }
 }
 
