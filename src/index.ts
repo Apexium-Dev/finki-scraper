@@ -1,26 +1,36 @@
+import * as dotenv from "dotenv";
 import { login } from "./services/auth";
 import { scrapeCourses } from "./core/scraper";
 import { monitorAnnouncements } from "./core/monitor";
 
+dotenv.config();
+
 async function runBot() {
   const now = new Date();
-  console.log(`Execution started at: ${now.toLocaleString()}`);
+  console.log(`\n[${now.toLocaleString()}] Execution started...`);
 
-  const { browser, page } = await login();
+  let browserInstance;
 
   try {
-    console.log("Checking for new courses...");
+    const connection = await login();
+    browserInstance = connection.browser;
+    const page = connection.page;
+
+    console.log("Status: Checking for new courses...");
     await scrapeCourses(page);
 
-    console.log("Checking announcements for new PDF schedules...");
+    console.log("Status: Monitoring announcement boards for new results...");
     await monitorAnnouncements(page);
 
-    console.log("Check completed successfully.");
+    console.log("Status: Check completed successfully.");
   } catch (error) {
-    console.error("Error during execution:", error);
+    console.error("Critical Error during execution:", error);
   } finally {
-    await browser.close();
-    console.log("Browser closed.");
+    if (browserInstance) {
+      await browserInstance.close();
+      console.log("Status: Browser instance closed.");
+    }
+
     scheduleNextRun();
   }
 }
@@ -28,22 +38,26 @@ async function runBot() {
 function scheduleNextRun() {
   const now = new Date();
   const hour = now.getHours();
-  let delayHours: number;
+  let delayMinutes: number;
 
   if (hour >= 0 && hour < 7) {
-    delayHours = 6;
-    console.log(`Night mode active. Next check in ${delayHours} hours.`);
+    delayMinutes = 120;
+    console.log(
+      `Mode: Nightly - Next check scheduled in ${delayMinutes} minutes.`,
+    );
   } else {
-    delayHours = 2;
-    console.log(`Day mode active. Next check in ${delayHours} hours.`);
+    delayMinutes = 45;
+    console.log(
+      `Mode: Active - Next check scheduled in ${delayMinutes} minutes.`,
+    );
   }
 
-  const delayMs = delayHours * 60 * 60 * 1000;
+  const delayMs = delayMinutes * 60 * 1000;
 
   setTimeout(() => {
     runBot();
   }, delayMs);
 }
 
-console.log("Bot process initialized.");
+console.log("System: FINKI Scraper Bot initialized.");
 runBot();
