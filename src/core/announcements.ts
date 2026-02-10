@@ -7,6 +7,8 @@ export interface LastAnnouncement {
     id: string;
     title: string;
     link: string;
+    date_checked?: string;
+    [key: string]: any;
   };
 }
 

@@ -1,5 +1,6 @@
 import { Page } from "puppeteer";
 const { PdfReader } = require("pdfreader");
+import { saveExamResult } from "./results";
 
 export async function parsePdfWithPage(
   page: Page,
@@ -74,5 +75,12 @@ export function findMultipleIndices(text: string, indices: string[]) {
       results.push({ index: cleanIndex, found: false });
     }
   }
+
+  for (const res of results) {
+    if (res.found && res.room !== "Не е најдена") {
+      saveExamResult(res);
+    }
+  }
+
   return results;
 }
