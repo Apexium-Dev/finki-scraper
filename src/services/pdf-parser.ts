@@ -36,8 +36,16 @@ export function findMultipleIndices(
   courseName: string,
   isGradeCheck: boolean,
 ): any[] {
-  const cleanText = text.replace(/\s\s+/g, " ");
+  let cleanText = text.replace(/\s\s+/g, " ");
+
+  // Also try removing spaces between digits to catch spaced-out numbers
+  const compactText = cleanText.replace(/(\d)\s+(?=\d)/g, "$1");
+
   const results: any[] = [];
+
+  console.log(
+    `[DEBUG] Searching for indices in ${courseName}: ${indices.join(", ")}`,
+  );
 
   const headerKeywords = [
     "Index",
@@ -64,10 +72,27 @@ export function findMultipleIndices(
 
   for (const index of indices) {
     const cleanIndex = index.trim();
-    const indexPos = cleanText.indexOf(cleanIndex);
+
+    // Try to find in both normal and compact text
+    let indexPos = cleanText.indexOf(cleanIndex);
+    let searchText = cleanText;
+
+    if (indexPos === -1) {
+      indexPos = compactText.indexOf(cleanIndex);
+      searchText = compactText;
+      if (indexPos !== -1) {
+        console.log(
+          `[DEBUG] Looking for index "${cleanIndex}" - found at position: ${indexPos} (in compact text)`,
+        );
+      }
+    } else {
+      console.log(
+        `[DEBUG] Looking for index "${cleanIndex}" - found at position: ${indexPos}`,
+      );
+    }
 
     if (indexPos !== -1) {
-      let context = cleanText.substring(
+      let context = searchText.substring(
         indexPos + cleanIndex.length,
         indexPos + 600,
       );
@@ -101,10 +126,15 @@ export function findMultipleIndices(
             grade: lastVal,
           };
 
+          console.log(`[DEBUG] Saving grade result:`, resultObj);
           saveGradeResult(resultObj);
           results.push(resultObj);
         }
       } else {
+        // Extract all numbers after the index (these are likely points/grades)
+        const allNumbers = context.match(/(\d{1,3}(?:[.,]\d{1,2})?)/g) || [];
+        const cleanNumbers = allNumbers.slice(0, 10); // Get first 10 numbers after index
+
         const roomMatch =
           context.match(
             /(?:lab|room|amfi|лаб|сала|амфитеатар)\s*([A-Z0-9.\/]+)/i,
@@ -117,12 +147,17 @@ export function findMultipleIndices(
           course: courseName,
           room: roomMatch ? roomMatch[1] : "N/A",
           time: timeMatch ? timeMatch[0] : "N/A",
+          points: cleanNumbers.slice(0, 3).join(" / "),
+          fullData: cleanNumbers.join(" | "),
         };
 
+        console.log(`[DEBUG] Saving exam result:`, found);
         saveExamResult(found);
         results.push(found);
       }
     }
   }
+
+  console.log(`[DEBUG] Total matches found: ${results.length}`);
   return results;
 }
