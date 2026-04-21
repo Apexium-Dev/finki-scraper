@@ -35,6 +35,7 @@ export function saveExamResult(result: any) {
 }
 
 const GRADES_FILE = path.join(DATA_DIR, "grades.json");
+const NEW_RESULTS_FILE = path.join(DATA_DIR, "new_results.json");
 
 export function saveGradeResult(result: any) {
   let grades = [];
@@ -48,8 +49,27 @@ export function saveGradeResult(result: any) {
       g.points === result.points,
   );
   if (!exists) {
-    grades.push({ timestamp: new Date().toLocaleString(), ...result });
+    const gradeRecord = { timestamp: new Date().toLocaleString(), ...result };
+    grades.push(gradeRecord);
     fs.writeFileSync(GRADES_FILE, JSON.stringify(grades, null, 2));
     console.log(`[DATA] Grade saved: ${result.index} -> ${result.points}`);
+
+    // Also write to new_results.json for Discord bot
+    addNewResult({
+      type: "grade",
+      index: result.index,
+      course: result.course,
+      points: result.points,
+      timestamp: gradeRecord.timestamp,
+    });
   }
+}
+
+function addNewResult(result: any) {
+  let newResults = [];
+  if (fs.existsSync(NEW_RESULTS_FILE)) {
+    newResults = JSON.parse(fs.readFileSync(NEW_RESULTS_FILE, "utf-8") || "[]");
+  }
+  newResults.push(result);
+  fs.writeFileSync(NEW_RESULTS_FILE, JSON.stringify(newResults, null, 2));
 }

@@ -47,19 +47,52 @@ export async function monitorAnnouncements(page: Page) {
           const contentElement = document.querySelector(
             ".post-content-container",
           );
-          if (!contentElement) return { text: "", links: [] };
+          if (!contentElement)
+            return {
+              text: "",
+              links: [],
+              debug: "No .post-content-container found",
+            };
 
-          const anchors = Array.from(contentElement.querySelectorAll("a"));
-          const links = anchors.map((a) => ({
+          const textContent = (contentElement as HTMLElement).innerText.trim();
+
+          // Get links from inside the post content container
+          const contentLinks = Array.from(
+            contentElement.querySelectorAll("a"),
+          ).map((a) => ({
             href: (a as HTMLAnchorElement).href,
             text: (a as HTMLElement).innerText.trim(),
           }));
 
+          // Also get ALL PDF/pluginfile links from the entire page (they might be in attachments section)
+          const allPageLinks = Array.from(
+            document.querySelectorAll("a[href*='pluginfile'], a[href*='.pdf']"),
+          )
+            .map((a) => ({
+              href: (a as HTMLAnchorElement).href,
+              text: (a as HTMLElement).innerText.trim(),
+            }))
+            .filter((l) => !l.href.includes("download.moodle.org")); // exclude moodle app download link
+
+          // Combine both lists and deduplicate by href
+          const allLinks = Array.from(
+            new Map(
+              [...contentLinks, ...allPageLinks].map((l) => [l.href, l]),
+            ).values(),
+          );
+
+          const hasPDFWord =
+            textContent.toLowerCase().includes("pdf") ||
+            textContent.toLowerCase().includes("прилог");
+
           return {
-            text: (contentElement as HTMLElement).innerText.trim(),
-            links: links,
+            text: textContent,
+            links: allLinks,
+            debug: `Content links: ${contentLinks.length}, Page PDF links: ${allPageLinks.length}, Combined: ${allLinks.length}, hasPDF: ${hasPDFWord}`,
           };
         });
+
+        console.log(`[DEBUG_EVAL] ${postData.debug}`);
 
         saveGeneralAnnouncement({
           course: course.name,
@@ -112,20 +145,34 @@ export async function monitorAnnouncements(page: Page) {
             }
           }
 
-          const pdfLinks = postData.links.filter((l) =>
-            l.href.toLowerCase().includes(".pdf"),
+          const pdfLinks = postData.links.filter(
+            (l) =>
+              l.href.toLowerCase().includes(".pdf") ||
+              l.href.toLowerCase().includes("pluginfile") ||
+              l.href.toLowerCase().includes("/resource/"),
           );
-          const keywordLinks = postData.links.filter((l) =>
-            /резултати|оцени|овде|тука|results|here|линк|link/i.test(l.text),
-          );
+          const keywordLinks = postData.links.filter((l) => {
+            const text = l.text.toLowerCase();
+            const href = l.href.toLowerCase();
+            return (
+              /резултати|оцени|овде|тука|results|here|линк|link|attachment|прилог|download/i.test(
+                text,
+              ) ||
+              href.includes("pluginfile") ||
+              href.includes("download")
+            );
+          });
 
           const allPotentialLinks = Array.from(
             new Set([
               ...pdfLinks.map((l) => l.href),
               ...keywordLinks.map((l) => l.href),
             ]),
-          );
+          ).filter((l) => l && l.length > 0);
 
+          console.log(
+            `[DEBUG] PDF links: ${pdfLinks.length}, Keyword links: ${keywordLinks.length}, Total: ${allPotentialLinks.length}`,
+          );
           console.log(
             `[INFO] Found ${allPotentialLinks.length} potential links for deep scanning.`,
           );
