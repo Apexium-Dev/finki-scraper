@@ -1,13 +1,29 @@
 import puppeteer from "puppeteer";
 import * as dotenv from "dotenv";
 
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      FINKI_INDEKS?: string;
+      FINKI_PASSWORD?: string;
+      CHROME_PATH?: string;
+    }
+  }
+}
+
 dotenv.config();
 puppeteer.launch({
   slowMo: 100,
 });
 export async function login() {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
+    executablePath: process.env.CHROME_PATH || "/usr/bin/chromium-browser",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+    ],
   });
   const page = await browser.newPage();
   await page.goto("https://courses.finki.ukim.mk/login/index.php");

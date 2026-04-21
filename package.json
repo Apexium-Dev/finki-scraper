@@ -27,7 +27,7 @@
     "puppeteer": "^24.37.2"
   },
   "devDependencies": {
-    "@types/node": "^25.2.2",
+    "@types/node": "^25.6.0",
     "@types/pdf-parse": "^1.1.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
