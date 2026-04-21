@@ -7,6 +7,10 @@ tests/
 data/*.json
 data/test-pdfs/
 
+# Sensitive Config
+.env
+src/config/users.ts
+
 # Test Scripts
 test-*.ts
 debug-screenshot.png
