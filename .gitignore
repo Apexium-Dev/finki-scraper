@@ -11,6 +11,9 @@ data/test-pdfs/
 .env
 src/config/users.ts
 
+# Personal Notes
+IDEAS.md
+
 # Test Scripts
 test-*.ts
 debug-screenshot.png
