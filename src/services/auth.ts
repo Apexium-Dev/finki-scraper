@@ -12,9 +12,7 @@ declare global {
 }
 
 dotenv.config();
-puppeteer.launch({
-  slowMo: 100,
-});
+
 export async function login() {
   const browser = await puppeteer.launch({
     headless: true,
