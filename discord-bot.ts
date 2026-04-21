@@ -2,6 +2,7 @@ import Discord from "discord.js";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { USERS } from "./src/config/users";
 
 dotenv.config();
 
@@ -73,12 +74,19 @@ async function checkForNewResults() {
       );
 
       if (!alreadyPosted) {
+        // Get user info if available
+        const userInfo = USERS[result.index];
+        const userMention =
+          userInfo && userInfo.discordId
+            ? `<@${userInfo.discordId}>`
+            : `Index: ${result.index}`;
+
         // Create embed message
         const embed = new Discord.EmbedBuilder()
           .setColor("#00FF00")
           .setTitle("📊 New Grade Found!")
           .addFields(
-            { name: "Student Index", value: result.index, inline: true },
+            { name: "Student", value: userMention, inline: true },
             { name: "Points", value: result.points, inline: true },
             { name: "Course", value: result.course },
             { name: "Time", value: result.timestamp },

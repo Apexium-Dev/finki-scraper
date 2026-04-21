@@ -1,0 +1,4 @@
+export const USERS: Record<string, { name: string; discordId: string }> = {
+  "STUDENT_INDEX_1": { name: "Student Name", discordId: "DISCORD_USER_ID" },
+  "STUDENT_INDEX_2": { name: "Another Student", discordId: "DISCORD_USER_ID" },
+};
