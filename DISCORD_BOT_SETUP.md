@@ -45,9 +45,8 @@
 Your `.env` should now have:
 
 ```
-FINKI_INDEKS=your_index
+FINKI_INDEKS=your_student_index
 FINKI_PASSWORD=your_password
-INDEXI=232055,233079,231075,233152,231096
 DISCORD_TOKEN=your_bot_token
 DISCORD_CHANNEL_ID=your_channel_id
 ```
@@ -94,10 +93,10 @@ Manually add to `data/new_results.json`:
 [
   {
     "type": "grade",
-    "index": "232055",
+    "index": "STUDENT_INDEX",
     "course": "Test Course",
     "points": "99",
-    "timestamp": "4/21/2026, 12:00:00 PM"
+    "timestamp": "2026-04-21T12:00:00Z"
   }
 ]
 ```
