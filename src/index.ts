@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+import { execSync } from "child_process";
 import { login } from "./services/auth";
 import { scrapeCourses } from "./core/scraper";
 import { monitorAnnouncements } from "./core/monitor";
@@ -11,7 +12,9 @@ async function runBot() {
 
   // Sleep mode: 4:00 - 7:00 (don't run, save RAM)
   if (hour >= 4 && hour < 7) {
-    console.log(`\n[${now.toLocaleString()}] 😴 Sleep mode (4:00-7:00). Skipping run.`);
+    console.log(
+      `\n[${now.toLocaleString()}] 😴 Sleep mode (4:00-7:00). Skipping run.`,
+    );
     scheduleNextRun();
     return;
   }
@@ -55,11 +58,20 @@ function scheduleNextRun() {
     wakeupTime.setHours(7, 0, 0, 0);
     const delayMs = wakeupTime.getTime() - now.getTime();
     console.log(
-      `😴 Sleep mode active (4:00-7:00). Next run at 7:00 AM (${Math.round(delayMs / 60000)} minutes).`,
+      `😴 Sleep mode active (4:00-7:00). Next restart at 7:00 AM (${Math.round(delayMs / 60000)} minutes).`,
     );
     setTimeout(() => {
-      console.log("\n🌅 Waking up from sleep! Starting run...");
-      runBot();
+      console.log("\n🌅 7:00 AM - Hard restart for memory cleanup!");
+      try {
+        // Hard restart via PM2 to clear all memory
+        execSync("pm2 restart finki-scraper --no-autorestart", {
+          stdio: "inherit",
+        });
+      } catch (error) {
+        console.error("PM2 restart failed:", error);
+        // Fallback: just resume normally
+        runBot();
+      }
     }, delayMs);
     return;
   }
