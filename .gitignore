@@ -21,6 +21,9 @@ debug-screenshot.png
 # VisualStudio Code Folder
 .vscode/
 
+# macOS
+.DS_Store
+
 # Logs
 logs
 *.log
