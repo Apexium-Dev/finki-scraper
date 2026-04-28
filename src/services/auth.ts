@@ -21,14 +21,21 @@ export async function login() {
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-default-browser-check",
     ],
+    timeout: 60000, // Increased from default 30s to 60s
   });
   const page = await browser.newPage();
-  await page.goto("https://courses.finki.ukim.mk/login/index.php");
+  await page.goto("https://courses.finki.ukim.mk/login/index.php", {
+    waitUntil: "networkidle2",
+    timeout: 30000,
+  });
 
   await page.type("#username", process.env.FINKI_INDEKS!);
   await page.type("#password", process.env.FINKI_PASSWORD!);
   await page.click(".btn-submit");
-  await page.waitForNavigation();
+  await page.waitForNavigation({ timeout: 30000 });
   return { browser, page };
 }
