@@ -64,7 +64,7 @@ function scheduleNextRun() {
       console.log("\n🌅 7:00 AM - Hard restart for memory cleanup!");
       try {
         // Hard restart via PM2 to clear all memory
-        execSync("pm2 restart finki-scraper --no-autorestart", {
+        execSync("pm2 restart finki-scraper", {
           stdio: "inherit",
         });
       } catch (error) {
